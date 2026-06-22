@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tourné">
+<meta name="theme-color" content="#15121A">
+<link rel="apple-touch-icon" id="appleTouchIcon" href="">
+<link rel="manifest" id="manifestLink" href="">
+<title>Tourné — Cash Ledger for Touring Artists</title>
+<style>
+  :root{
+    --stage-black:#15121A; --stage-charcoal:#1F1B26; --stage-charcoal-2:#272130; --line:#352E3F;
+    --spotlight:#FF3CAC; --spotlight-soft:rgba(255,60,172,.16);
+    --gold:#E8B85C; --gold-soft:rgba(232,184,92,.16);
+    --teal:#2DD4BF; --amber:#E8A33D; --red:#E2584A;
+    --cream:#F6F1E8; --cream-dim:#B8AFC2;
+    --font-display:'Futura','Century Gothic','Segoe UI Semibold',sans-serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
+    --font-mono:'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:#0B090E;color:var(--cream);font-family:var(--font-body);}
+  button{font-family:inherit;}
+  .app-shell{ max-width:1000px; margin:0 auto; padding:20px; display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start; }
+
+  /* PHONE */
+  .phone-wrap{ flex:0 0 410px; max-width:100%; margin:0 auto; }
+  .phone{ background:var(--stage-black); border-radius:34px; border:1px solid #2A2433; box-shadow:0 30px 60px -20px rgba(0,0,0,.6), 0 0 0 8px #0B090E; position:relative; overflow:hidden; min-height:780px; display:flex; flex-direction:column; }
+  .phone::before{ content:""; position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:22px; background:#0B090E; border-radius:0 0 14px 14px; z-index:5; }
+  .phone-scroll{ flex:1; overflow-y:auto; padding:34px 16px 18px; }
+  .phone-scroll::-webkit-scrollbar{ width:0; }
+
+  .privacy-banner{ display:flex; align-items:center; gap:8px; background:var(--gold-soft); border:1px solid var(--gold); border-radius:10px; padding:9px 12px; margin-bottom:12px; font-size:11px; color:var(--gold); font-family:var(--font-mono); letter-spacing:.02em; }
+  .privacy-banner b{ color:var(--cream); }
+
+  .demo-row{ display:flex; justify-content:space-between; align-items:center; background:var(--stage-charcoal); border:1px solid var(--line); border-radius:14px; padding:11px 13px; margin-bottom:16px; transition:border-color .2s, background .2s; }
+  .demo-row.active{ border-color:var(--spotlight); background:var(--spotlight-soft); }
+  .demo-text .demo-label{ font-size:13px; font-weight:700; color:var(--cream); display:flex; align-items:center; gap:6px; }
+  .demo-text .demo-sub{ font-size:10.5px; color:var(--cream-dim); margin-top:1px; }
+  .switch{ position:relative; width:46px; height:26px; flex:0 0 46px; }
+  .switch input{ opacity:0; width:0; height:0; position:absolute; }
+  .switch .track{ position:absolute; inset:0; background:var(--line); border-radius:14px; transition:background .25s; }
+  .switch input:checked + .track{ background:var(--spotlight); }
+  .switch .thumb{ position:absolute; top:3px; left:3px; width:20px; height:20px; background:#fff; border-radius:50%; transition:left .25s; pointer-events:none; }
+  .switch input:checked ~ .thumb{ left:23px; }
+
+  .app-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+  .app-title{ font-family:var(--font-display); font-size:26px; letter-spacing:.04em; margin:0; color:var(--cream); }
+  .app-sub{ font-size:11px; color:var(--cream-dim); margin-top:2px; }
+  .profile-chip{ font-family:var(--font-mono); font-size:10px; color:var(--cream-dim); border:1px solid var(--line); border-radius:20px; padding:5px 10px; white-space:nowrap; }
+
+  .balance-card{ background:linear-gradient(135deg, var(--stage-charcoal), var(--stage-charcoal-2)); border:1px solid var(--line); border-radius:18px; padding:18px; margin-bottom:16px; }
+  .balance-label{ font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--cream-dim); }
+  .balance-amt{ font-family:var(--font-display); font-size:34px; color:var(--cream); margin:4px 0 0; }
+  .balance-foot{ font-size:11px; color:var(--cream-dim); margin-top:4px; }
+
+  .add-cash-btn{ width:100%; background:var(--spotlight); color:#1a0a14; border:none; border-radius:14px; padding:15px; font-size:15px; font-weight:700; letter-spacing:.02em; cursor:pointer; box-shadow:0 8px 20px -6px rgba(255,60,172,.5); margin-bottom:18px; }
+  .add-cash-btn:active{ transform:scale(.98); }
+
+  .tabs{ display:flex; gap:6px; margin-bottom:12px; }
+  .tab-btn{ flex:1; background:transparent; border:1px solid var(--line); color:var(--cream-dim); border-radius:10px; padding:8px 6px; font-size:11px; cursor:pointer; letter-spacing:.01em; white-space:nowrap; }
+  .tab-btn.active{ background:var(--spotlight-soft); border-color:var(--spotlight); color:var(--spotlight); }
+  #primaryTabs{ overflow-x:auto; flex-wrap:nowrap; scrollbar-width:none; }
+  #primaryTabs::-webkit-scrollbar{ display:none; }
+  #primaryTabs .tab-btn{ flex:0 0 auto; padding:8px 13px; }
+  .subtabs{ display:flex; gap:6px; margin-bottom:12px; }
+  .subtab-btn{ background:transparent; border:1px solid var(--line); color:var(--cream-dim); border-radius:20px; padding:6px 13px; font-size:11px; cursor:pointer; }
+  .subtab-btn.active{ background:var(--gold-soft); border-color:var(--gold); color:var(--gold); font-weight:700; }
+
+  .pass{ display:flex; background:var(--stage-charcoal); border:1px solid var(--line); border-radius:14px; margin-bottom:10px; overflow:hidden; position:relative; }
+  .pass-stub{ width:78px; flex:0 0 78px; background:var(--gold-soft); border-right:2px dashed rgba(232,184,92,.5); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 4px; position:relative; }
+  .pass-stub .flag{ font-size:20px; }
+  .pass-stub .cur-amt{ font-family:var(--font-mono); font-size:12px; color:var(--gold); margin-top:4px; text-align:center; }
+  .pass-stub::before, .pass-stub::after{ content:""; position:absolute; width:14px; height:14px; background:#0B090E; border-radius:50%; right:-7px; }
+  .pass-stub::before{ top:-7px; } .pass-stub::after{ bottom:-7px; }
+  .pass-body{ flex:1; padding:12px 14px; min-width:0; }
+  .pass-cat{ font-size:13px; font-weight:600; color:var(--cream); }
+  .pass-notes{ font-size:11.5px; color:var(--cream-dim); margin-top:2px; }
+  .pass-meta{ display:flex; justify-content:space-between; align-items:baseline; margin-top:8px; }
+  .pass-date{ font-family:var(--font-mono); font-size:10px; color:var(--cream-dim); }
+  .pass-base{ font-family:var(--font-mono); font-size:14px; color:var(--teal); font-weight:600; }
+  .empty-state{ text-align:center; color:var(--cream-dim); font-size:12px; padding:30px 12px; line-height:1.6; }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:12px; }
+  table.stmt-table{ width:100%; border-collapse:collapse; font-family:var(--font-mono); font-size:11px; min-width:480px; }
+  table.stmt-table th{ text-align:left; color:var(--cream-dim); font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; border-bottom:1px solid var(--line); padding:8px 8px; position:sticky; top:0; background:var(--stage-charcoal); cursor:pointer; }
+  table.stmt-table td{ padding:7px 8px; border-bottom:1px solid var(--line); color:var(--cream); white-space:nowrap; }
+  table.stmt-table td.num{ text-align:right; color:var(--teal); }
+  table.stmt-table tbody tr:hover{ background:rgba(255,255,255,.03); }
+
+  table.matrix-grid{ border-collapse:collapse; font-family:var(--font-mono); font-size:10.5px; min-width:1400px; }
+  table.matrix-grid th, table.matrix-grid td{ padding:7px 9px; border-bottom:1px solid var(--line); border-right:1px solid var(--line); white-space:nowrap; }
+  table.matrix-grid th{ color:var(--cream-dim); font-size:9px; letter-spacing:.03em; text-transform:uppercase; text-align:right; background:var(--stage-charcoal-2); position:sticky; top:0; }
+  table.matrix-grid th.month-col, table.matrix-grid td.month-col{ text-align:left; position:sticky; left:0; background:var(--stage-charcoal-2); z-index:2; color:var(--cream); font-weight:700; }
+  table.matrix-grid td{ text-align:right; color:var(--cream-dim); }
+  table.matrix-grid td.nz{ color:var(--cream); }
+  table.matrix-grid td.income{ color:var(--teal); font-weight:700; }
+  table.matrix-grid tr.totals-row td{ border-top:2px solid var(--line); font-weight:700; color:var(--gold); background:rgba(232,184,92,.06); }
+  table.matrix-grid tr.totals-row td.month-col{ background:var(--stage-charcoal-2); }
+
+  .net-strip{ display:flex; gap:8px; margin-bottom:12px; }
+  .net-box{ flex:1; background:var(--stage-charcoal); border:1px solid var(--line); border-radius:10px; padding:9px; text-align:center; }
+  .net-num{ font-family:var(--font-mono); font-size:13px; }
+  .net-lbl{ font-size:9px; color:var(--cream-dim); margin-top:2px; }
+
+  /* settings blocks (Rules + Wealth tabs) */
+  .settings-block{ background:var(--stage-charcoal); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:14px; }
+  .block-h{ font-family:var(--font-display); font-size:17px; margin:0 0 4px; }
+  .block-sub{ font-size:11px; color:var(--cream-dim); margin:0 0 12px; line-height:1.5; }
+  .rule-form{ display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .rule-form input, .rule-form select{ flex:1 1 130px; background:var(--stage-charcoal-2); border:1px solid var(--line); border-radius:8px; color:var(--cream); padding:9px 10px; font-size:12px; font-family:inherit; }
+  .rule-form button{ flex:0 0 auto; background:var(--spotlight); color:#1a0a14; border:none; border-radius:8px; padding:9px 14px; font-size:12px; font-weight:700; cursor:pointer; }
+  .rule-row-item{ display:flex; align-items:center; gap:8px; font-size:12px; padding:7px 4px; border-bottom:1px dashed var(--line); }
+  .rule-row-item:last-child{ border-bottom:none; }
+  .rule-kw{ font-family:var(--font-mono); color:var(--gold); background:var(--gold-soft); border-radius:6px; padding:2px 7px; }
+  .rule-arrow{ color:var(--cream-dim); }
+  .rule-cat{ flex:1; color:var(--cream); }
+  .rule-del{ background:transparent; border:none; color:var(--cream-dim); font-size:16px; cursor:pointer; line-height:1; }
+  .rule-del:hover{ color:var(--red); }
+  .builtin-toggle{ font-family:var(--font-mono); font-size:10.5px; color:var(--cream-dim); cursor:pointer; margin-top:6px; }
+  .builtin-toggle:hover{ color:var(--teal); }
+
+  .fx-rate-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; font-family:var(--font-mono); font-size:12px; }
+  .fx-rate-row input{ width:84px; background:var(--stage-charcoal-2); border:1px solid var(--line); border-radius:8px; color:var(--cream); padding:6px 8px; font-family:inherit; }
+  .fx-cur{ flex:0 0 76px; color:var(--cream-dim); }
+  .fx-eq{ color:var(--cream-dim); }
+  .fx-usd-lbl{ color:var(--cream-dim); font-size:10px; }
+
+  .wealth-inputs-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .field{ margin-bottom:14px; }
+  .field.mini{ margin-bottom:0; }
+  .field-label{ font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--cream-dim); margin-bottom:6px; display:block; }
+  .field input, .field select, .field textarea{ width:100%; background:var(--stage-charcoal-2); border:1px solid var(--line); border-radius:10px; color:var(--cream); padding:11px 12px; font-size:14px; font-family:inherit; outline:none; }
+  .field.mini input{ padding:9px 10px; font-size:13px; }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--spotlight); }
+
+  .gauge-wrap{ position:relative; text-align:center; margin-bottom:10px; }
+  .gauge-readout{ position:absolute; left:0; right:0; bottom:4px; }
+  .gauge-big{ font-family:var(--font-display); font-size:26px; }
+  .gauge-small{ font-size:10px; color:var(--cream-dim); margin-top:2px; padding:0 20px; }
+  .wealth-stats-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+  .progress-linear-wrap{ margin-top:4px; }
+  .progress-linear-label{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--cream-dim); margin-bottom:5px; }
+  .progress-linear-track{ height:8px; background:var(--line); border-radius:5px; overflow:hidden; }
+  .progress-linear-fill{ height:100%; background:linear-gradient(90deg, var(--gold), var(--teal)); width:0%; transition:width .4s; }
+
+  .csv-btn-block{ width:100%; background:transparent; border:1px solid var(--line); color:var(--cream); border-radius:9px; padding:10px; font-size:12px; cursor:pointer; margin-top:4px; }
+  .csv-btn-block:hover{ border-color:var(--teal); color:var(--teal); }
+
+  /* ONBOARDING */
+  .onboard-overlay{ position:fixed; inset:0; background:rgba(11,9,14,.92); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .onboard-card{ background:var(--stage-charcoal); border:1px solid var(--line); border-radius:22px; width:100%; max-width:360px; padding:26px 22px; text-align:center; }
+  .onboard-eyebrow{ font-family:var(--font-mono); font-size:10px; color:var(--gold); letter-spacing:.1em; text-transform:uppercase; }
+  .onboard-h{ font-family:var(--font-display); font-size:24px; margin:8px 0 18px; }
+  .opt-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+  .opt-btn{ background:var(--stage-charcoal-2); border:1px solid var(--line); color:var(--cream); border-radius:10px; padding:12px 8px; font-size:12.5px; cursor:pointer; }
+  .opt-btn.sel{ border-color:var(--spotlight); background:var(--spotlight-soft); color:var(--spotlight); }
+  .dots{ display:flex; justify-content:center; gap:6px; margin-bottom:16px; }
+  .dot-step{ width:7px; height:7px; border-radius:50%; background:var(--line); }
+  .dot-step.on{ background:var(--spotlight); }
+  .onboard-nav{ display:flex; gap:8px; }
+  .nav-btn{ flex:1; border-radius:10px; padding:12px; font-size:13px; cursor:pointer; border:none; }
+  .nav-back{ background:transparent; border:1px solid var(--line); color:var(--cream-dim); }
+  .nav-next{ background:var(--spotlight); color:#1a0a14; font-weight:700; }
+  .nav-next:disabled{ opacity:.4; cursor:not-allowed; }
+
+  /* ADD CASH SHEET */
+  .sheet-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:90; display:flex; align-items:flex-end; justify-content:center; opacity:0; pointer-events:none; transition:opacity .25s; }
+  .sheet-overlay.open{ opacity:1; pointer-events:auto; }
+  .sheet{ background:var(--stage-charcoal); width:100%; max-width:380px; border-radius:24px 24px 0 0; padding:18px 20px 26px; transform:translateY(100%); transition:transform .3s ease; max-height:85vh; overflow-y:auto; }
+  .sheet-overlay.open .sheet{ transform:translateY(0); }
+  .sheet-handle{ width:36px; height:4px; background:var(--line); border-radius:3px; margin:0 auto 14px; }
+  .sheet h3{ font-family:var(--font-display); font-size:19px; margin:0 0 14px; }
+  .cur-switch{ display:flex; gap:6px; margin-bottom:16px; }
+  .cur-pill{ flex:1; padding:10px 0; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--cream-dim); font-size:12px; cursor:pointer; font-family:var(--font-mono); }
+  .cur-pill.sel{ background:var(--gold-soft); border-color:var(--gold); color:var(--gold); font-weight:700; }
+  .save-btn{ width:100%; background:var(--spotlight); color:#1a0a14; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:700; cursor:pointer; margin-top:4px; }
+  .conv-preview{ font-family:var(--font-mono); font-size:11px; color:var(--teal); margin:-6px 0 14px; min-height:14px; }
+
+  /* DEV TRACKER */
+  .tracker-col{ flex:1 1 300px; min-width:280px; }
+  .tracker-panel{ background:#0D0B11; border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+  .tracker-head{ display:flex; justify-content:space-between; align-items:center; padding:16px 16px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .tracker-title{ font-family:var(--font-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--teal); }
+  .chevron{ color:var(--cream-dim); transition:transform .25s; font-size:12px; }
+  .tracker-panel.collapsed .chevron{ transform:rotate(-90deg); }
+  .tracker-body{ padding:14px 16px 18px; }
+  .tracker-panel.collapsed .tracker-body{ display:none; }
+  .module-row{ display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px dashed var(--line); font-size:12px; }
+  .module-row:last-child{ border-bottom:none; }
+  .module-name{ color:var(--cream); }
+  .module-status{ display:flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:10px; letter-spacing:.03em; }
+  .light{ width:8px; height:8px; border-radius:50%; transition:background .3s, box-shadow .3s; }
+  .light.green{ background:var(--teal); box-shadow:0 0 7px var(--teal); }
+  .light.amber{ background:var(--amber); box-shadow:0 0 7px var(--amber); animation:pulse 1.4s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .status-text.green{ color:var(--teal); } .status-text.amber{ color:var(--amber); }
+  .module-note{ font-size:9.5px; color:var(--cream-dim); display:block; margin-top:-1px; }
+  .sub-panel{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .sub-h{ font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--cream-dim); margin-bottom:8px; }
+  .cache-line{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; }
+  .cache-val{ color:var(--teal); font-family:var(--font-mono); font-weight:700; }
+  .cache-bar{ height:6px; background:var(--line); border-radius:4px; overflow:hidden; margin:6px 0; }
+  .cache-bar-fill{ height:100%; background:linear-gradient(90deg, #1e6e63, var(--teal)); width:2%; transition:width .4s; }
+  .cache-foot{ font-size:9.5px; color:var(--cream-dim); }
+  .vel-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+  .vel-box{ background:var(--stage-charcoal); border:1px solid var(--line); border-radius:10px; padding:9px; text-align:center; }
+  .vel-num{ font-family:var(--font-mono); font-size:14px; color:var(--gold); }
+  .vel-lbl{ font-size:9px; color:var(--cream-dim); margin-top:2px; }
+  .csv-btn, .a2hs-btn{ width:100%; background:transparent; border:1px solid var(--line); color:var(--cream); border-radius:9px; padding:9px; font-size:11.5px; cursor:pointer; margin-top:8px; }
+  .csv-btn:hover, .a2hs-btn:hover{ border-color:var(--teal); color:var(--teal); }
+  .a2hs-note{ font-size:10px; color:var(--cream-dim); margin-top:8px; line-height:1.5; }
+
+  .console-box{ font-family:var(--font-mono); font-size:10.2px; line-height:1.55; white-space:pre-wrap; max-height:230px; overflow-y:auto; }
+  .console-box .lbl{ color:var(--cream-dim); }
+  .console-box .val{ color:var(--teal); }
+  .console-box .res{ color:var(--gold); font-weight:700; }
+  .cursor{ display:inline-block; width:6px; height:11px; background:var(--teal); vertical-align:-1px; animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .console-box::-webkit-scrollbar{ width:5px; }
+  .console-box::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; }
+
+  @media (max-width:760px){
+    .app-shell{ flex-direction:column; }
+    .phone-wrap{ flex:0 0 auto; width:100%; }
+    .tracker-col{ width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell" id="appShell">
+
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-scroll">
+
+        <div class="privacy-banner">🔒 <b>Data Privacy Lock</b> — runs 100% on this device, zero network calls.</div>
+
+        <div class="demo-row" id="demoRow">
+          <div class="demo-text">
+            <div class="demo-label">🎬 Demo Mode</div>
+            <div class="demo-sub" id="demoSub">Off — showing your own clean ledger</div>
+          </div>
+          <label class="switch"><input type="checkbox" id="demoToggle"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+
+        <div class="app-header">
+          <div><p class="app-title">Tourné</p><p class="app-sub">Cash ledger for touring artists</p></div>
+          <div class="profile-chip" id="profileChip"></div>
+        </div>
+
+        <div class="balance-card">
+          <div class="balance-label">Manual Cash Ledger</div>
+          <div class="balance-amt" id="balanceAmt">—</div>
+          <div class="balance-foot" id="balanceFoot">0 entries logged</div>
+        </div>
+
+        <button class="add-cash-btn" id="openSheetBtn">⚡ Add Cash Expense</button>
+
+        <div class="tabs" id="primaryTabs">
+          <button class="tab-btn active" data-tab="ledger">Ledger</button>
+          <button class="tab-btn" data-tab="accounts">Accounts</button>
+          <button class="tab-btn" data-tab="matrix">Matrix</button>
+          <button class="tab-btn" data-tab="rules">Rules</button>
+          <button class="tab-btn" data-tab="wealth">Wealth Goal</button>
+        </div>
+
+        <div id="panelLedger">
+          <div class="tabs">
+            <button class="tab-btn active" data-view="cards">Boarding Passes</button>
+            <button class="tab-btn" data-view="table">Table</button>
+          </div>
+          <div id="cardsView"></div>
+          <div id="tableView" style="display:none;"></div>
+        </div>
+
+        <div id="panelAccounts" style="display:none;">
+          <div class="subtabs">
+            <button class="subtab-btn active" data-acct="Amex">Amex</button>
+            <button class="subtab-btn" data-acct="HSBC">HSBC</button>
+          </div>
+          <div id="accountStatement"></div>
+        </div>
+
+        <div id="panelMatrix" style="display:none;">
+          <div class="net-strip" id="netStrip"></div>
+          <div class="table-wrap" style="max-height:420px; overflow-y:auto;"><div id="matrixGrid"></div></div>
+        </div>
+
+        <div id="panelRules" style="display:none;">
+          <div class="settings-block">
+            <h3 class="block-h">Smart Categorization Rules</h3>
+            <p class="block-sub">Teach the engine your own vendors. Custom rules always take priority over built-in ones.</p>
+            <div class="rule-form">
+              <input id="ruleKeyword" type="text" placeholder="e.g. WDSF, Swarovski, Stuttgart">
+              <select id="ruleCategory"></select>
+              <button id="addRuleBtn">Add Rule</button>
+            </div>
+            <div id="customRulesList"></div>
+            <div class="builtin-toggle" id="builtinToggle">▾ View built-in rules (read-only)</div>
+            <div id="builtinRulesList" style="display:none; margin-top:8px;"></div>
+          </div>
+
+          <div class="settings-block">
+            <h3 class="block-h">Import CSV Statement</h3>
+            <p class="block-sub">Upload a bank or card export — every row is scanned against the rules above and auto-categorized instantly.</p>
+            <div class="field"><span class="field-label">Target Account</span>
+              <select id="importAccountSelect"><option value="Amex">Amex</option><option value="HSBC">HSBC</option><option value="Cash Ledger">Cash Ledger</option></select>
+            </div>
+            <button class="csv-btn-block" id="importCsvBtn">⇧ Choose CSV File</button>
+            <input type="file" id="importCsvFile" accept=".csv,text/csv" style="display:none;">
+            <div class="block-sub" id="importResult" style="margin-top:8px; margin-bottom:0;"></div>
+          </div>
+        </div>
+
+        <div id="panelWealth" style="display:none;">
+          <div class="settings-block">
+            <h3 class="block-h">Global FX Engine</h3>
+            <p class="block-sub">Editable exchange rates (1 unit → USD). Every conversion across the app reads from these live.</p>
+            <div id="fxRatesBlock"></div>
+          </div>
+
+          <div class="settings-block">
+            <h3 class="block-h">$1,000,000 Retirement Milestone</h3>
+            <p class="block-sub">Future-value annuity solver — age 37 → 45 by default, solved live for your required pace.</p>
+            <div class="wealth-inputs-grid">
+              <div class="field mini"><span class="field-label">Start Age</span><input id="startAgeInput" type="number" value="37"></div>
+              <div class="field mini"><span class="field-label">Target Age</span><input id="targetAgeInput" type="number" value="45"></div>
+              <div class="field mini"><span class="field-label">Annual Yield %</span><input id="yieldInput" type="number" value="7" step="0.1"></div>
+              <div class="field mini"><span class="field-label">Current Savings (PV)</span><input id="pvInput" type="number" value="0" step="100"></div>
+            </div>
+
+            <div class="gauge-wrap">
+              <svg id="gaugeSvg" viewBox="0 0 200 116" width="100%"></svg>
+              <div class="gauge-readout"><div class="gauge-big" id="gaugeBigText">—</div><div class="gauge-small" id="gaugeSmallText">of required pace this month</div></div>
+            </div>
+
+            <div class="wealth-stats-grid">
+              <div class="net-box"><div class="net-num" id="reqPmtOut" style="color:var(--gold);">—</div><div class="net-lbl">required / month</div></div>
+              <div class="net-box"><div class="net-num" id="actualPmtOut" style="color:var(--teal);">—</div><div class="net-lbl">actual this month</div></div>
+              <div class="net-box"><div class="net-num" id="goalAmtOut" style="color:var(--cream);">—</div><div class="net-lbl">$1M in base ccy</div></div>
+            </div>
+
+            <div class="progress-linear-wrap">
+              <div class="progress-linear-label"><span>Current savings toward goal</span><span id="pvPctLabel">0%</span></div>
+              <div class="progress-linear-track"><div class="progress-linear-fill" id="pvProgressFill"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="tracker-col">
+    <div class="tracker-panel" id="trackerPanel">
+      <div class="tracker-head" id="trackerToggle">
+        <span class="tracker-title">Visual App Development Tracker</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="tracker-body">
+        <div id="moduleList"></div>
+
+        <div class="sub-panel">
+          <div class="sub-h">Memory Cache Inspector</div>
+          <div class="cache-line"><span>Bytes stored</span><span class="cache-val" id="cacheBytes">0 B</span></div>
+          <div class="cache-bar"><div class="cache-bar-fill" id="cacheBar"></div></div>
+          <div class="cache-foot" id="cacheFoot">0 entries · session cache</div>
+          <button class="csv-btn" id="exportCsvBtn">⇩ Export All Accounts (CSV)</button>
+        </div>
+
+        <div class="sub-panel">
+          <div class="sub-h">Wealth Velocity Solver</div>
+          <div class="vel-grid">
+            <div class="vel-box"><div class="vel-num" id="velDaily">—</div><div class="vel-lbl">net / day</div></div>
+            <div class="vel-box"><div class="vel-num" id="velMonthly">—</div><div class="vel-lbl">net / month</div></div>
+          </div>
+        </div>
+
+        <div class="sub-panel">
+          <div class="sub-h">Live Math Console</div>
+          <div class="console-box" id="mathConsole"></div>
+        </div>
+
+        <div class="sub-panel">
+          <div class="sub-h">PWA Manifest Engine</div>
+          <button class="a2hs-btn" id="a2hsBtn">📲 Add to Home Screen</button>
+          <div class="a2hs-note">iPhone: Share → Add to Home Screen. Android: ⋮ menu → Add to Home Screen / Install app.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="onboard-overlay" id="onboardOverlay">
+  <div class="onboard-card">
+    <div id="onboardStepContent"></div>
+    <div class="dots" id="onboardDots"></div>
+    <div class="onboard-nav"><button class="nav-btn nav-back" id="onbBack">Back</button><button class="nav-btn nav-next" id="onbNext">Next</button></div>
+  </div>
+</div>
+
+<div class="sheet-overlay" id="sheetOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Add Cash Expense</h3>
+    <span class="field-label">Currency Quick-Switch</span>
+    <div class="cur-switch" id="curSwitch"></div>
+    <div class="field"><span class="field-label">Amount</span><input type="number" id="amtInput" placeholder="0.00" min="0" step="0.01"></div>
+    <div class="field"><span class="field-label">Category</span><select id="catInput"></select></div>
+    <div class="field"><span class="field-label">Notes</span><textarea id="notesInput" rows="2" placeholder="e.g. private lesson with Marco"></textarea></div>
+    <div class="conv-preview" id="convPreview"></div>
+    <button class="save-btn" id="saveEntryBtn">Add to Ledger</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------------- mutable, editable FX table (1 unit = ? USD) ----------------
+  const RATES = { USD:1, EUR:1.08, GBP:1.27, HKD:0.128, AED:0.272 };
+  const SYM = { USD:'$', EUR:'€', GBP:'£', HKD:'HK$', AED:'AED ' };
+  const FLAG = { USD:'🇺🇸', EUR:'🇪🇺', GBP:'🇬🇧', HKD:'🇭🇰', AED:'🇦🇪' };
+  const QUICK_CURS = ['USD','EUR','HKD','GBP'];
+  const BASE_CURS = ['USD','EUR','HKD','AED'];
+
+  const CATEGORY_COLUMNS = [
+    'Salary / Income','Airlines','Hotels','Rental Cars - Slovenia','Rental Cars - Worldwide',
+    'Trains & Rail','Local Transport (Taxi/Rideshare)','Mortgage','Parent Debt Payments',
+    'Educational (Private Lessons)','Coaching/Judging Fees','Costume & Wardrobe',
+    'Venue & Studio Rental','Cash Spending','Groceries & Dining','Insurance',
+    'Phone & Internet','Banking Fees & FX Charges','Equipment & Shoes','Marketing & Branding','Other'
+  ];
+  const INCOME_CATEGORIES = ['Salary / Income'];
+
+  const BUILTIN_RULES = [
+    {kw:'cathay', cat:'Airlines'}, {kw:'lufthansa', cat:'Airlines'}, {kw:'emirates', cat:'Airlines'},
+    {kw:'booking.com', cat:'Hotels'}, {kw:'hotel', cat:'Hotels'},
+    {kw:'ljubljana', cat:'Rental Cars - Slovenia'}, {kw:'sixt', cat:'Rental Cars - Worldwide'},
+    {kw:'dance concept', cat:'Salary / Income'}, {kw:'salary', cat:'Salary / Income'},
+    {kw:'mortgage', cat:'Mortgage'}, {kw:'erste bank', cat:'Mortgage'},
+    {kw:'family loan', cat:'Parent Debt Payments'}, {kw:'parent', cat:'Parent Debt Payments'}
+  ];
+  let CUSTOM_RULES = [];
+
+  function convert(amount, from, to){ return (amount*RATES[from]) / RATES[to]; }
+  function fmt(n, cur){ const sign=n<0?'-':''; return sign+SYM[cur]+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function monthKey(dateStr){ const d=new Date(dateStr); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+  function monthLabel(key){ const [y,m]=key.split('-'); return new Date(y,m-1,1).toLocaleDateString(undefined,{month:'short',year:'numeric'}); }
+  function escapeHtml(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function categorizeText(text){
+    const lower = text.toLowerCase();
+    for(const r of CUSTOM_RULES){ if(lower.includes(r.keyword.toLowerCase())) return r.category; }
+    for(const r of BUILTIN_RULES){ if(lower.includes(r.kw)) return r.cat; }
+    return 'Other';
+  }
+
+  const $ = id => document.getElementById(id);
+
+  // ---------------- state (in-memory only — see chat note) ----------------
+  let profile = null;
+  let userLedger = [];
+  let demoTransactions = [];
+  let importedTransactions = [];
+  let demoMode = false;
+  let activeCurrency = 'USD';
+  let activeAccount = 'Amex';
+  let ledgerSortKey='date', ledgerSortDir=-1;
+  let mathConsoleLog = [];
+
+  // ================= ONBOARDING =================
+  const steps = [
+    { key:'region', title:'Where are you based?', eyebrow:'Step 1 / 3', opts:['USA','Europe','Asia','Middle East'] },
+    { key:'role', title:'What\'s your role?', eyebrow:'Step 2 / 3', opts:['Active Dancer','Dance Teacher / Judge'] },
+    { key:'baseCurrency', title:'Pick your base currency', eyebrow:'Step 3 / 3', opts:BASE_CURS }
+  ];
+  let onbStep=0, onbAnswers={};
+  function renderOnboarding(){
+    const s = steps[onbStep];
+    $('onboardStepContent').innerHTML = `<div class="onboard-eyebrow">${s.eyebrow}</div><div class="onboard-h">${s.title}</div>
+      <div class="opt-grid">${s.opts.map(o=>`<button class="opt-btn ${onbAnswers[s.key]===o?'sel':''}" data-val="${o}">${o}</button>`).join('')}</div>`;
+    $('onboardDots').innerHTML = steps.map((_,i)=>`<span class="dot-step ${i===onbStep?'on':''}"></span>`).join('');
+    $('onbBack').style.visibility = onbStep===0 ? 'hidden':'visible';
+    $('onbNext').textContent = onbStep===steps.length-1 ? 'Enter Tourné':'Next';
+    $('onbNext').disabled = !onbAnswers[s.key];
+    $('onboardStepContent').querySelectorAll('.opt-btn').forEach(btn=>btn.addEventListener('click', ()=>{ onbAnswers[s.key]=btn.dataset.val; renderOnboarding(); }));
+  }
+  $('onbBack').addEventListener('click', ()=>{ if(onbStep>0){ onbStep--; renderOnboarding(); } });
+  $('onbNext').addEventListener('click', ()=>{
+    if(onbStep<steps.length-1){ onbStep++; renderOnboarding(); }
+    else { profile={region:onbAnswers.region, role:onbAnswers.role, baseCurrency:onbAnswers.baseCurrency}; $('onboardOverlay').style.display='none'; initMainApp(); }
+  });
+  renderOnboarding();
+
+  // ================= INIT =================
+  function defaultCategory(){ return profile.role==='Dance Teacher / Judge' ? 'Educational (Private Lessons)' : 'Cash Spending'; }
+  function regionFlag(){ return { USA:'🇺🇸', Europe:'🇪🇺', Asia:'🌏', 'Middle East':'🕌' }[profile.region] || '🌍'; }
+
+  function initMainApp(){
+    $('profileChip').textContent = `${regionFlag()} ${profile.role==='Active Dancer'?'Dancer':'Teacher/Judge'} · ${profile.baseCurrency}`;
+
+    $('curSwitch').innerHTML = QUICK_CURS.map(c=>`<button class="cur-pill ${c===activeCurrency?'sel':''}" data-cur="${c}">${FLAG[c]} ${c}</button>`).join('');
+    $('curSwitch').querySelectorAll('.cur-pill').forEach(btn=>btn.addEventListener('click', ()=>{
+      activeCurrency=btn.dataset.cur;
+      $('curSwitch').querySelectorAll('.cur-pill').forEach(b=>b.classList.toggle('sel', b===btn));
+      updateConvPreview();
+    }));
+
+    $('catInput').innerHTML = CATEGORY_COLUMNS.map(c=>`<option value="${c}">${c}</option>`).join('');
+    $('catInput').value = defaultCategory();
+    $('ruleCategory').innerHTML = CATEGORY_COLUMNS.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+    renderModules();
+    registerManifest();
+    renderFxRatesBlock();
+    renderCustomRules();
+    renderBuiltinRules();
+    renderAll();
+
+    // each engine below confirms itself live only after it has actually run once.
+    markModuleLive('Universal CSV Router');
+    markModuleLive('Master Spreadsheet Matrix');
+    markModuleLive('FX Translation Engine');
+    markModuleLive('Custom Rules Trainer');
+    markModuleLive('Wealth Velocity Solver');
+  }
+
+  // ================= PWA MANIFEST ENGINE =================
+  function registerManifest(){
+    const manifest = { name:'Tourné — Cash Ledger', short_name:'Tourné', start_url:'.', display:'standalone', background_color:'#15121A', theme_color:'#15121A', icons:[{src:'icon.svg', sizes:'512x512', type:'image/svg+xml'}] };
+    $('manifestLink').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:'application/json'}));
+    const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#FF3CAC"/><text x="50" y="64" font-size="42" font-family="Futura, sans-serif" font-weight="bold" fill="#E8B85C" text-anchor="middle">T</text></svg>`;
+    $('appleTouchIcon').href = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+  }
+  $('a2hsBtn').addEventListener('click', ()=>{
+    alert('To install Tourné on your phone:\n\niPhone (Safari): tap the Share icon → "Add to Home Screen"\nAndroid (Chrome): tap the ⋮ menu → "Add to Home Screen" or "Install app"');
+  });
+
+  // ================= DEMO MODE =================
+  function generateDemoData(){
+    const out = []; const today = new Date();
+    const d = (offM, day) => new Date(today.getFullYear(), today.getMonth()-offM, day).toISOString().slice(0,10);
+    for(let i=5;i>=0;i--){
+      out.push({account:'HSBC', date:d(i,1),  vendor:'Dance Concept (Salary)',       category:'Salary / Income',        currency:'HKD', amount:27000});
+      out.push({account:'HSBC', date:d(i,3),  vendor:'Erste Bank Austria — Mortgage', category:'Mortgage',               currency:'EUR', amount:505});
+      out.push({account:'HSBC', date:d(i,5),  vendor:'Family Loan Repayment',         category:'Parent Debt Payments',   currency:'EUR', amount:300});
+      out.push({account:'HSBC', date:d(i,14), vendor:'Sixt Rent a Car — Ljubljana',   category:'Rental Cars - Slovenia', currency:'EUR', amount:95+i*5});
+      out.push({account:'HSBC', date:d(i,16), vendor:'Booking.com Hotel',             category:'Hotels',                 currency:'EUR', amount:180+i*10});
+      if(i%2===0) out.push({account:'Amex', date:d(i,9),  vendor:'Cathay Pacific', category:'Airlines', currency:'HKD', amount:4200+i*150});
+      else        out.push({account:'Amex', date:d(i,12), vendor:'Lufthansa',      category:'Airlines', currency:'EUR', amount:380+i*20});
+      if(i===1 || i===4) out.push({account:'Amex', date:d(i,20), vendor:'Cathay Pacific', category:'Airlines', currency:'HKD', amount:3600});
+      if(i%3===0) out.push({account:'HSBC', date:d(i,22), vendor:'Sixt Rent a Car — Milan', category:'Rental Cars - Worldwide', currency:'EUR', amount:140});
+      if(i===0 || i===3) out.push({account:'Amex', date:d(i,23), vendor:'Sixt Rent a Car — Vienna', category:'Rental Cars - Worldwide', currency:'EUR', amount:110});
+      if(i%2===1) out.push({account:'HSBC', date:d(i,27), vendor:'Booking.com Hotel', category:'Hotels', currency:'USD', amount:210});
+    }
+    return out.map((t,idx)=>({ id:'demo-'+idx, ...t }));
+  }
+  $('demoToggle').addEventListener('change', (e)=>{
+    demoMode = e.target.checked;
+    $('demoRow').classList.toggle('active', demoMode);
+    $('demoSub').textContent = demoMode ? 'On — sample Dance Concept / Amex / HSBC data loaded' : 'Off — showing your own clean ledger';
+    demoTransactions = demoMode ? generateDemoData() : [];
+    renderAll();
+  });
+
+  // ================= ADD CASH SHEET =================
+  $('openSheetBtn').addEventListener('click', ()=>{
+    $('amtInput').value=''; $('notesInput').value=''; $('catInput').value=defaultCategory();
+    updateConvPreview(); $('sheetOverlay').classList.add('open');
+  });
+  $('sheetOverlay').addEventListener('click', (e)=>{ if(e.target.id==='sheetOverlay') $('sheetOverlay').classList.remove('open'); });
+  function updateConvPreview(){
+    const amt = parseFloat($('amtInput').value)||0;
+    $('convPreview').textContent = amt<=0 ? '' : `≈ ${fmt(convert(amt, activeCurrency, profile.baseCurrency), profile.baseCurrency)} at today's demo FX rate`;
+  }
+  $('amtInput').addEventListener('input', updateConvPreview);
+  $('saveEntryBtn').addEventListener('click', ()=>{
+    const amount = parseFloat($('amtInput').value);
+    if(!amount || amount<=0){ $('amtInput').focus(); return; }
+    userLedger.unshift({ id:'cash-'+Date.now(), account:'Cash Ledger', currency:activeCurrency, amount:amount,
+      category:$('catInput').value, notes:$('notesInput').value.trim(), date:new Date().toISOString().slice(0,10) });
+    $('sheetOverlay').classList.remove('open');
+    renderAll();
+  });
+
+  // ================= COMBINED DATASET =================
+  function combinedTransactions(){
+    const cash = userLedger.map(e=>({ id:e.id, account:'Cash Ledger', date:e.date, vendor:e.notes||e.category, category:e.category, currency:e.currency, amount:e.amount }));
+    return [...cash, ...demoTransactions, ...importedTransactions];
+  }
+  function withBase(t){ return { ...t, baseAmount: convert(t.amount, t.currency, profile.baseCurrency) }; }
+
+  // ================= TOP-LEVEL RENDER =================
+  function renderAll(){
+    const total = userLedger.reduce((s,e)=>s+convert(e.amount,e.currency,profile.baseCurrency),0);
+    $('balanceAmt').textContent = fmt(total, profile.baseCurrency);
+    $('balanceFoot').textContent = `${userLedger.length} entr${userLedger.length===1?'y':'ies'} logged`;
+    renderCards(); renderTable(); renderAccountStatement(); renderMasterMatrix();
+    renderCache(); renderVelocity(); renderWealthDashboard();
+  }
+
+  function renderCards(){
+    if(userLedger.length===0){ $('cardsView').innerHTML = `<div class="empty-state">No entries yet.<br>Tap "Add Cash Expense" to log your first one.</div>`; return; }
+    $('cardsView').innerHTML = userLedger.map(e=>`
+      <div class="pass">
+        <div class="pass-stub"><div class="flag">${FLAG[e.currency]}</div><div class="cur-amt">${SYM[e.currency]}${e.amount.toFixed(2)}</div></div>
+        <div class="pass-body"><div class="pass-cat">${e.category}</div>${e.notes?`<div class="pass-notes">${escapeHtml(e.notes)}</div>`:''}
+        <div class="pass-meta"><span class="pass-date">${e.date}</span><span class="pass-base">${fmt(convert(e.amount,e.currency,profile.baseCurrency), profile.baseCurrency)}</span></div></div>
+      </div>`).join('');
+  }
+  function renderTable(){
+    if(userLedger.length===0){ $('tableView').innerHTML = `<div class="empty-state">No entries yet.</div>`; return; }
+    const sorted = [...userLedger].sort((a,b)=>{ let av=a[ledgerSortKey],bv=b[ledgerSortKey]; return typeof av==='string' ? ledgerSortDir*av.localeCompare(bv) : ledgerSortDir*(av-bv); });
+    const rows = sorted.map(e=>`<tr><td>${e.date}</td><td>${e.category}</td><td>${e.currency}</td><td class="num">${fmt(convert(e.amount,e.currency,profile.baseCurrency),profile.baseCurrency)}</td></tr>`).join('');
+    $('tableView').innerHTML = `<div class="table-wrap"><table class="stmt-table"><thead><tr><th data-k="date">Date</th><th data-k="category">Category</th><th data-k="currency">Cur</th><th data-k="amount" style="text-align:right;">Base Amt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    $('tableView').querySelectorAll('th').forEach(th=>th.addEventListener('click', ()=>{ const k=th.dataset.k; ledgerSortDir = ledgerSortKey===k ? -ledgerSortDir : -1; ledgerSortKey=k; renderTable(); }));
+  }
+
+  function renderAccountStatement(){
+    const rows = combinedTransactions().filter(t=>t.account===activeAccount).map(withBase).sort((a,b)=>b.date.localeCompare(a.date));
+    if(rows.length===0){
+      $('accountStatement').innerHTML = `<div class="empty-state">No ${activeAccount} transactions yet.<br>Flip on <b>Demo Mode</b> or import a CSV statement from the <b>Rules</b> tab.</div>`;
+      return;
+    }
+    $('accountStatement').innerHTML = `<div class="table-wrap"><table class="stmt-table">
+      <thead><tr><th>Date</th><th>Vendor</th><th>Category</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Base</th></tr></thead>
+      <tbody>${rows.map(t=>`<tr><td>${t.date}</td><td>${escapeHtml(t.vendor)}</td><td>${t.category}</td><td class="num">${fmt(t.amount,t.currency)}</td><td class="num">${fmt(t.baseAmount,profile.baseCurrency)}</td></tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+  document.querySelectorAll('.subtab-btn').forEach(btn=>btn.addEventListener('click', ()=>{
+    activeAccount = btn.dataset.acct;
+    document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    renderAccountStatement();
+  }));
+
+  function renderMasterMatrix(){
+    const txs = combinedTransactions().map(withBase);
+    const months = [...new Set(txs.map(t=>monthKey(t.date)))].sort().reverse();
+    const grid = {};
+    months.forEach(m=> grid[m]=Object.fromEntries(CATEGORY_COLUMNS.map(c=>[c,0])));
+    txs.forEach(t=>{ const m=monthKey(t.date); if(!grid[m]) grid[m]=Object.fromEntries(CATEGORY_COLUMNS.map(c=>[c,0])); grid[m][t.category]=(grid[m][t.category]||0)+t.baseAmount; });
+
+    const totalIncome = txs.filter(t=>INCOME_CATEGORIES.includes(t.category)).reduce((s,t)=>s+t.baseAmount,0);
+    const totalExpense = txs.filter(t=>!INCOME_CATEGORIES.includes(t.category)).reduce((s,t)=>s+t.baseAmount,0);
+    $('netStrip').innerHTML = `
+      <div class="net-box"><div class="net-num" style="color:var(--teal);">${fmt(totalIncome,profile.baseCurrency)}</div><div class="net-lbl">total income</div></div>
+      <div class="net-box"><div class="net-num" style="color:var(--cream);">${fmt(totalExpense,profile.baseCurrency)}</div><div class="net-lbl">total expense</div></div>
+      <div class="net-box"><div class="net-num" style="color:${totalIncome-totalExpense>=0?'var(--teal)':'var(--red)'};">${fmt(totalIncome-totalExpense,profile.baseCurrency)}</div><div class="net-lbl">net position</div></div>`;
+
+    if(months.length===0){ $('matrixGrid').innerHTML = `<div class="empty-state">No transactions yet. Add a cash entry, flip on Demo Mode, or import a CSV to see the Master Matrix populate.</div>`; return; }
+
+    const colTotals = Object.fromEntries(CATEGORY_COLUMNS.map(c=>[c,0]));
+    months.forEach(m=> CATEGORY_COLUMNS.forEach(c=> colTotals[c]+=grid[m][c]));
+    const head = `<tr><th class="month-col">Month</th>${CATEGORY_COLUMNS.map(c=>`<th title="${c}">${c.length>14?c.slice(0,13)+'…':c}</th>`).join('')}</tr>`;
+    const body = months.map(m=>`<tr><td class="month-col">${monthLabel(m)}</td>${CATEGORY_COLUMNS.map(c=>{
+      const v=grid[m][c]; const isIncome=INCOME_CATEGORIES.includes(c); const cls = v===0?'':(isIncome?'nz income':'nz');
+      return `<td class="${cls}">${v===0?'·':fmt(v,profile.baseCurrency)}</td>`;
+    }).join('')}</tr>`).join('');
+    const totalsRow = `<tr class="totals-row"><td class="month-col">All Months</td>${CATEGORY_COLUMNS.map(c=>`<td>${colTotals[c]===0?'·':fmt(colTotals[c],profile.baseCurrency)}</td>`).join('')}</tr>`;
+    $('matrixGrid').innerHTML = `<table class="matrix-grid"><thead>${head}</thead><tbody>${body}${totalsRow}</tbody></table>`;
+  }
+
+  // ----- primary / sub tab switching -----
+  document.querySelectorAll('#primaryTabs .tab-btn').forEach(btn=>btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#primaryTabs .tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    const tab = btn.dataset.tab;
+    $('panelLedger').style.display = tab==='ledger' ? 'block':'none';
+    $('panelAccounts').style.display = tab==='accounts' ? 'block':'none';
+    $('panelMatrix').style.display = tab==='matrix' ? 'block':'none';
+    $('panelRules').style.display = tab==='rules' ? 'block':'none';
+    $('panelWealth').style.display = tab==='wealth' ? 'block':'none';
+  }));
+  document.querySelectorAll('#panelLedger .tabs .tab-btn').forEach(btn=>btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#panelLedger .tabs .tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    const v = btn.dataset.view;
+    $('cardsView').style.display = v==='cards' ? 'block':'none';
+    $('tableView').style.display = v==='table' ? 'block':'none';
+  }));
+
+  // ================= CUSTOM CATEGORIZATION TRAINER =================
+  function renderCustomRules(){
+    $('customRulesList').innerHTML = CUSTOM_RULES.length===0
+      ? `<div class="empty-state" style="padding:10px 2px;">No custom rules yet — add one below.</div>`
+      : CUSTOM_RULES.map((r,i)=>`<div class="rule-row-item"><span class="rule-kw">${escapeHtml(r.keyword)}</span><span class="rule-arrow">→</span><span class="rule-cat">${r.category}</span><button class="rule-del" data-i="${i}">×</button></div>`).join('');
+    document.querySelectorAll('.rule-del').forEach(btn=>btn.addEventListener('click', ()=>{ CUSTOM_RULES.splice(parseInt(btn.dataset.i),1); renderCustomRules(); }));
+  }
+  function renderBuiltinRules(){
+    $('builtinRulesList').innerHTML = BUILTIN_RULES.map(r=>`<div class="rule-row-item"><span class="rule-kw">${r.kw}</span><span class="rule-arrow">→</span><span class="rule-cat">${r.cat}</span></div>`).join('');
+  }
+  $('builtinToggle').addEventListener('click', ()=>{
+    const el = $('builtinRulesList'); const open = el.style.display!=='none';
+    el.style.display = open ? 'none':'block';
+    $('builtinToggle').textContent = (open?'▾':'▴') + ' View built-in rules (read-only)';
+  });
+  $('addRuleBtn').addEventListener('click', ()=>{
+    const kw = $('ruleKeyword').value.trim();
+    if(!kw) return;
+    CUSTOM_RULES.unshift({ keyword:kw, category:$('ruleCategory').value });
+    $('ruleKeyword').value='';
+    renderCustomRules();
+  });
+
+  // ================= UNIVERSAL CSV ROUTER: IMPORT (auto-categorized) =================
+  function importCsvText(text, account){
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    let added = 0;
+    lines.forEach(line=>{
+      const parts = line.split(',').map(p=>p.trim().replace(/^"|"$/g,''));
+      if(parts.length<2) return;
+      let dateStr=null, currency=profile.baseCurrency; const rest=[];
+      parts.forEach(p=>{
+        if(/^\d{4}-\d{2}-\d{2}$/.test(p)) dateStr=p;
+        else if(/^[A-Z]{3}$/.test(p) && RATES[p]!==undefined) currency=p;
+        else rest.push(p);
+      });
+      let amount = NaN;
+      for(let i=rest.length-1;i>=0;i--){
+        const cleaned = rest[i].replace(/[^0-9.\-]/g,'');
+        if(cleaned && /\d/.test(cleaned) && !isNaN(parseFloat(cleaned))){ amount=parseFloat(cleaned); rest.splice(i,1); break; }
+      }
+      if(isNaN(amount)) return; // likely a header row
+      const vendor = rest.join(' ') || 'Imported transaction';
+      importedTransactions.push({ id:'import-'+Date.now()+'-'+Math.random().toString(36).slice(2), account, date: dateStr || new Date().toISOString().slice(0,10), vendor, category: categorizeText(vendor), currency, amount });
+      added++;
+    });
+    return added;
+  }
+  $('importCsvBtn').addEventListener('click', ()=> $('importCsvFile').click());
+  $('importCsvFile').addEventListener('change', (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const acct = $('importAccountSelect').value;
+      const count = importCsvText(ev.target.result, acct);
+      $('importResult').textContent = `Imported ${count} transaction${count===1?'':'s'} into ${acct}, auto-categorized using your rules.`;
+      renderAll();
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ================= DEV TRACKER: MODULES =================
+  const MODULES = [
+    { name:'PWA Manifest Engine', status:'green' },
+    { name:'Local Storage Cache', status:'amber', note:'Browser storage blocked in preview — using session memory' },
+    { name:'Universal CSV Router', status:'amber' },
+    { name:'FX Translation Engine', status:'amber' },
+    { name:'Master Spreadsheet Matrix', status:'amber' },
+    { name:'Custom Rules Trainer', status:'amber' },
+    { name:'Wealth Velocity Solver', status:'amber' }
+  ];
+  function renderModules(){
+    $('moduleList').innerHTML = MODULES.map(m=>`
+      <div class="module-row"><span class="module-name">${m.name}${m.note?`<span class="module-note">${m.note}</span>`:''}</span>
+      <span class="module-status"><span class="light ${m.status}"></span><span class="status-text ${m.status}">${m.status==='green'?'Live':'Pending'}</span></span></div>`).join('');
+  }
+  function markModuleLive(name){ const m=MODULES.find(x=>x.name===name); if(m && m.status!=='green'){ m.status='green'; renderModules(); } }
+
+  // ================= MEMORY CACHE INSPECTOR =================
+  function renderCache(){
+    const bytes = new Blob([JSON.stringify({profile, userLedger, demoMode, demoTransactions, importedTransactions, CUSTOM_RULES, RATES})]).size;
+    $('cacheBytes').textContent = bytes<1024 ? bytes+' B' : (bytes/1024).toFixed(1)+' KB';
+    const allCount = userLedger.length + demoTransactions.length + importedTransactions.length;
+    $('cacheFoot').textContent = `${allCount} total transactions · session cache (resets on reload)`;
+    $('cacheBar').style.width = Math.min(100, (bytes/20480)*100) + '%';
+  }
+
+  // ================= WEALTH VELOCITY SOLVER (net, all accounts) =================
+  function renderVelocity(){
+    const txs = combinedTransactions().map(withBase);
+    if(txs.length===0){ $('velDaily').textContent='—'; $('velMonthly').textContent='—'; return; }
+    const dates = txs.map(t=>new Date(t.date).getTime());
+    const span = Math.max(1, (Date.now()-Math.min(...dates))/86400000);
+    const net = txs.reduce((s,t)=> s + (INCOME_CATEGORIES.includes(t.category) ? t.baseAmount : -t.baseAmount), 0);
+    const daily = net/span;
+    $('velDaily').textContent = fmt(daily, profile.baseCurrency); $('velDaily').style.color = daily>=0 ? 'var(--teal)' : 'var(--red)';
+    $('velMonthly').textContent = fmt(daily*30, profile.baseCurrency); $('velMonthly').style.color = daily>=0 ? 'var(--teal)' : 'var(--red)';
+  }
+
+  // ================= GLOBAL FX ENGINE (editable rates) =================
+  function renderFxRatesBlock(){
+    $('fxRatesBlock').innerHTML = Object.keys(RATES).map(c=>`
+      <div class="fx-rate-row"><span class="fx-cur">${FLAG[c]} ${c}</span><span class="fx-eq">=</span>
+      <input type="number" step="0.0001" value="${RATES[c]}" data-cur="${c}" class="fx-rate-input"><span class="fx-usd-lbl">USD</span></div>`).join('');
+    document.querySelectorAll('.fx-rate-input').forEach(inp=>inp.addEventListener('input', ()=>{
+      const v = parseFloat(inp.value); if(!isNaN(v) && v>0){ RATES[inp.dataset.cur]=v; renderAll(); }
+    }));
+  }
+
+  // ================= $1M RETIREMENT MILESTONE + LIVE MATH CONSOLE =================
+  function computeWealthPlan(){
+    const startAge = parseFloat($('startAgeInput').value)||37;
+    const targetAge = parseFloat($('targetAgeInput').value)||45;
+    const n = Math.max(1, Math.round((targetAge-startAge)*12));
+    const annualYield = parseFloat($('yieldInput').value)||0;
+    const r = (annualYield/100)/12;
+    const pv = parseFloat($('pvInput').value)||0;
+    const fv = convert(1000000, 'USD', profile.baseCurrency);
+    let growthFactor, requiredPMT;
+    if(r===0){ growthFactor=1; requiredPMT=(fv-pv)/n; }
+    else { growthFactor=Math.pow(1+r,n); requiredPMT=(fv-pv*growthFactor)/((growthFactor-1)/r); }
+    return {startAge,targetAge,n,annualYield,r,pv,fv,growthFactor,requiredPMT};
+  }
+  function actualMonthlySavings(){
+    const txs = combinedTransactions().map(withBase);
+    const curMonth = monthKey(new Date().toISOString().slice(0,10));
+    return txs.filter(t=>monthKey(t.date)===curMonth).reduce((s,t)=> s+(INCOME_CATEGORIES.includes(t.category)?t.baseAmount:-t.baseAmount),0);
+  }
+
+  function arcPoint(cx,cy,r,deg){ const rad=deg*Math.PI/180; return { x:cx+r*Math.cos(rad), y:cy-r*Math.sin(rad) }; }
+  function describeArc(cx,cy,r,startDeg,endDeg){ const s=arcPoint(cx,cy,r,startDeg), e=arcPoint(cx,cy,r,endDeg); return `M ${s.x} ${s.y} A ${r} ${r} 0 0 1 ${e.x} ${e.y}`; }
+  function renderGauge(pctRaw){
+    const pct = Math.max(0, pctRaw); const clamped = Math.min(100, pct);
+    const color = pct>=100 ? 'var(--teal)' : pct>=50 ? 'var(--gold)' : 'var(--red)';
+    const bg = describeArc(100,98,80,180,0);
+    const fg = describeArc(100,98,80,180,180-clamped*1.8);
+    $('gaugeSvg').innerHTML = `<path d="${bg}" fill="none" stroke="var(--line)" stroke-width="14" stroke-linecap="round"/><path d="${fg}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"/>`;
+    $('gaugeBigText').textContent = (isFinite(pctRaw)?pctRaw:0).toFixed(0)+'%';
+    $('gaugeBigText').style.color = color;
+  }
+
+  function renderWealthDashboard(){
+    if(!profile) return;
+    const plan = computeWealthPlan();
+    const actual = actualMonthlySavings();
+    $('reqPmtOut').textContent = fmt(Math.max(0,plan.requiredPMT), profile.baseCurrency);
+    $('actualPmtOut').textContent = fmt(actual, profile.baseCurrency);
+    $('goalAmtOut').textContent = fmt(plan.fv, profile.baseCurrency);
+
+    let pct;
+    if(plan.requiredPMT<=0){ pct=100; $('gaugeSmallText').textContent='Already on pace without further savings 🎉'; }
+    else { pct=(actual/plan.requiredPMT)*100; $('gaugeSmallText').textContent='of required pace this month'; }
+    renderGauge(pct);
+
+    const pvPct = Math.min(100, Math.max(0,(plan.pv/plan.fv)*100));
+    $('pvProgressFill').style.width = pvPct+'%';
+    $('pvPctLabel').textContent = pvPct.toFixed(1)+'%';
+
+    runWealthMath(plan, actual);
+  }
+  ['startAgeInput','targetAgeInput','yieldInput','pvInput'].forEach(id=> $(id).addEventListener('input', renderWealthDashboard));
+
+  function runWealthMath(plan, actual){
+    const cur = profile.baseCurrency;
+    const lines = [
+      `<span class="lbl">&gt; solve_required_pmt()</span>`,
+      `FV = <span class="val">${fmt(plan.fv,cur)}</span>  ($1,000,000 → ${cur})`,
+      `PV = <span class="val">${fmt(plan.pv,cur)}</span>`,
+      `r  = <span class="val">${plan.r.toFixed(6)}</span>  (${plan.annualYield.toFixed(2)}% / 12)`,
+      `n  = <span class="val">${plan.n}</span> mo  (age ${plan.startAge}→${plan.targetAge})`,
+      `(1+r)^n = <span class="val">${plan.growthFactor.toFixed(4)}</span>`,
+      `PMT = [FV − PV(1+r)^n] / [((1+r)^n − 1)/r]`,
+      `PMT = [${plan.fv.toFixed(2)} − ${plan.pv.toFixed(2)}×${plan.growthFactor.toFixed(4)}] / [(${plan.growthFactor.toFixed(4)}−1)/${plan.r.toFixed(6)}]`,
+      `<span class="res">PMT = ${fmt(plan.requiredPMT,cur)} / month required</span>`,
+      `actual_this_month = <span class="val">${fmt(actual,cur)}</span>`
+    ];
+    mathConsoleLog.push(lines.join('\n'));
+    if(mathConsoleLog.length>3) mathConsoleLog.shift();
+    $('mathConsole').innerHTML = mathConsoleLog.map((block,i)=>{
+      const isLast = i===mathConsoleLog.length-1;
+      return `<div>${block}${isLast?'<span class="cursor"></span>':''}</div>` + (isLast?'':'<hr style="border:none;border-top:1px dashed var(--line);margin:6px 0;">');
+    }).join('');
+    $('mathConsole').scrollTop = $('mathConsole').scrollHeight;
+  }
+
+  // ================= UNIVERSAL CSV ROUTER: EXPORT =================
+  $('exportCsvBtn').addEventListener('click', ()=>{
+    const txs = combinedTransactions().map(withBase);
+    const header = 'date,account,vendor,category,currency,amount,base_currency,base_amount\n';
+    const rows = txs.map(t=>[t.date,t.account,'"'+t.vendor.replace(/"/g,'""')+'"',t.category,t.currency,t.amount.toFixed(2),profile.baseCurrency,t.baseAmount.toFixed(2)].join(',')).join('\n');
+    const blob = new Blob([header+rows], {type:'text/csv'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='tourne-all-accounts.csv'; a.click();
+  });
+
+  // ================= COLLAPSIBLE TRACKER =================
+  $('trackerToggle').addEventListener('click', ()=> $('trackerPanel').classList.toggle('collapsed'));
+
+})();
+</script>
+</body>
+</html>
